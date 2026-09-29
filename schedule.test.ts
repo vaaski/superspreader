@@ -14,12 +14,14 @@ test("dates remain increasing and inside Berlin weekday office hours, including 
 		minute: "2-digit",
 		hourCycle: "h23",
 	})
+
 	const dates = spreadDates("2026-10-22", "2026-11-03", 12, () => 0.7)
 	expect(dates).toHaveLength(12)
 	expect(berlinDay(dates[0]!)).toBe("2026-10-22")
 	expect(berlinDay(dates.at(-1)!)).toBe("2026-11-03")
 	for (const [index, date] of dates.entries()) {
 		if (index > 0) expect(date.getTime()).toBeGreaterThan(dates[index - 1]!.getTime())
+
 		const parts = Object.fromEntries(formatter.formatToParts(date).map(({ type, value }) => [type, value]))
 		expect(["Sat", "Sun"]).not.toContain(parts.weekday)
 		expect(Number(parts.hour)).toBeGreaterThanOrEqual(10)
