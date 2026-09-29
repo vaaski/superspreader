@@ -4,6 +4,9 @@
   "workspaces": {
     "": {
       "name": "superspreader",
+      "dependencies": {
+        "@clack/prompts": "^1.8.1",
+      },
       "devDependencies": {
         "@antfu/eslint-config": "^9.5.1",
         "@types/bun": "latest",
