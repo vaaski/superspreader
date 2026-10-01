@@ -15,7 +15,7 @@ test("dates remain increasing and inside Berlin weekday office hours, including 
 		hourCycle: "h23",
 	})
 
-	const dates = spreadDates("2026-10-22", "2026-11-03", 12, () => 0.7)
+	const dates = spreadDates("2026-10-22", "2026-11-03", 12, () => 0.7, new Date("2026-11-04T00:00:00Z"))
 	expect(dates).toHaveLength(12)
 	expect(berlinDay(dates[0]!)).toBe("2026-10-22")
 	expect(berlinDay(dates.at(-1)!)).toBe("2026-11-03")
@@ -30,8 +30,26 @@ test("dates remain increasing and inside Berlin weekday office hours, including 
 })
 
 test("single commit falls on last workday and weekends have no eligible dates", () => {
-	expect(berlinDay(spreadDates("2026-09-17", "2026-09-29", 1, () => 0)[0]!)).toBe("2026-09-29")
-	expect(() => spreadDates("2026-09-19", "2026-09-20", 1)).toThrow("Only 0 eligible")
+	const now = new Date("2026-09-30T00:00:00Z")
+	expect(berlinDay(spreadDates("2026-09-17", "2026-09-29", 1, () => 0, now)[0]!)).toBe("2026-09-29")
+	expect(() => spreadDates("2026-09-19", "2026-09-20", 1, Math.random, now)).toThrow("Only 0 eligible")
+})
+
+test("today's commits never land later than now, including seconds in the current minute", () => {
+	const now = new Date("2026-09-29T11:25:17.500Z")
+	let calls = 0
+	const random = () => ++calls === 1 ? 0 : 0.999
+	const [date] = spreadDates("2026-09-29", "2026-09-29", 1, random, now)
+
+	expect(date).toBeDefined()
+	expect(date!.getTime()).toBeLessThanOrEqual(now.getTime())
+	expect(berlinDay(date!)).toBe("2026-09-29")
+})
+
+test("future end dates and work hours that have not started yet are rejected", () => {
+	const now = new Date("2026-09-29T07:59:00Z")
+	expect(() => spreadDates("2026-09-29", "2026-09-30", 1, Math.random, now)).toThrow("in the future")
+	expect(() => spreadDates("2026-09-29", "2026-09-29", 1, Math.random, now)).toThrow("Only 0 eligible")
 })
 
 test("invalid date ranges are rejected", () => {

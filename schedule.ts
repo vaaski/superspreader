@@ -39,7 +39,7 @@ export const defaultDays = (now = new Date()) => {
 	return { start: thursdayTwoWeeksAgo.toISOString().slice(0, 10), end }
 }
 
-export const spreadDates = (start: string, end: string, count: number, random = Math.random) => {
+export const spreadDates = (start: string, end: string, count: number, random = Math.random, now = new Date()) => {
 	const first = parseDay(start)
 	const last = parseDay(end)
 	const days = (last.getTime() - first.getTime()) / 86_400_000
@@ -51,6 +51,9 @@ export const spreadDates = (start: string, end: string, count: number, random = 
 	if (!Number.isSafeInteger(count) || count < 1) {
 		throw new Error("At least one commit is required.")
 	}
+	if (end > berlinDay(now)) {
+		throw new Error("End date cannot be in the future.")
+	}
 
 	const minutes: number[] = []
 	for (let time = first.getTime() - 86_400_000; time < last.getTime() + 2 * 86_400_000; time += 60_000) {
@@ -58,7 +61,7 @@ export const spreadDates = (start: string, end: string, count: number, random = 
 		const day = `${parts.year}-${parts.month}-${parts.day}`
 		const hour = Number(parts.hour)
 
-		if (day >= start && day <= end && parts.weekday !== "Sat" && parts.weekday !== "Sun" && hour >= 10 && hour < 18) {
+		if (day >= start && day <= end && parts.weekday !== "Sat" && parts.weekday !== "Sun" && hour >= 10 && hour < 18 && time <= now.getTime()) {
 			minutes.push(time)
 		}
 	}
@@ -87,7 +90,8 @@ export const spreadDates = (start: string, end: string, count: number, random = 
 		const minute = minutes[Math.round(target + jitter)]
 		if (minute === undefined) throw new Error("No eligible minute for commit.")
 
-		return new Date(minute + Math.floor(random() * 60) * 1_000)
+		const availableSeconds = Math.min(59, Math.floor((now.getTime() - minute) / 1_000))
+		return new Date(minute + Math.floor(random() * (availableSeconds + 1)) * 1_000)
 	})
 }
 

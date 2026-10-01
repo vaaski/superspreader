@@ -104,6 +104,8 @@ const main = async (repoPath = process.cwd()) => {
 	const original = git(repo, ["rev-parse", "HEAD"])
 	const suggested = suggestedBase(repo)
 	const defaults = defaultDays()
+	const defaultStartWeekday = new Intl.DateTimeFormat("en-GB", { weekday: "long", timeZone: "UTC" })
+		.format(parseDay(defaults.start))
 
 	intro("superspreader · spread commit dates across Berlin work hours")
 	log.info(`Repository: ${repo}\nBranch: ${branch}\nSuggested base: ${suggested || "none detected"}`)
@@ -128,16 +130,18 @@ const main = async (repoPath = process.cwd()) => {
 	}))
 
 	const start = answer(await date({
-		message: "Start date (Berlin calendar; arrow keys edit year/month/day)",
+		message: `Start date (default: ${defaultStartWeekday} two weeks ago, ${defaults.start})`,
 		format: "YMD",
 		initialValue: parseDay(defaults.start),
 		defaultValue: parseDay(defaults.start),
+		maxDate: parseDay(defaults.end),
 	})).toISOString().slice(0, 10)
 	const end = answer(await date({
-		message: "End date (Berlin calendar)",
+		message: `End date (default: today, ${defaults.end})`,
 		format: "YMD",
 		initialValue: parseDay(defaults.end),
 		defaultValue: parseDay(defaults.end),
+		maxDate: parseDay(defaults.end),
 		validate(value) {
 			if (value && value.toISOString().slice(0, 10) < start) return "End date must be on or after start date."
 		},
@@ -156,7 +160,7 @@ const main = async (repoPath = process.cwd()) => {
 	spreadDates(start, end, count)
 	log.info(`${count} commits · ${start} → ${end} · weekdays 10:00–18:00 Europe/Berlin`)
 
-	if (!answer(await confirm({ message: "Create a backup and rewrite these commits?", initialValue: false }))) {
+	if (!answer(await confirm({ message: "Create a backup and rewrite these commits?", initialValue: true }))) {
 		outro("No changes made.")
 		return
 	}
